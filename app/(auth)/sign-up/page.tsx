@@ -1,16 +1,16 @@
-import DashboardPageView from "@/components/dashboard/dashboard-page-view";
+import SignUpForm from "@/components/auth/SignUpForm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-export default async function DashboardPage() {
+export default async function SignUpPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
-  if (!session) {
+  if (!!session) {
     redirect("/");
   }
 
-  return <DashboardPageView />;
+  return <SignUpForm />;
 }
