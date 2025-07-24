@@ -36,9 +36,15 @@ const formSchema = z
     email: z.string().email({
       message: "Please enter a valid email address.",
     }),
-    password: z.string().min(6, {
-      message: "Password must be at least 6 characters.",
-    }),
+    password: z.string()
+      .min(8, { message: "Password must be at least 8 characters." })
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+        {
+          message:
+            "Password must contain uppercase, lowercase, number and special character.",
+        }
+      ),
     confirmPassword: z.string().min(6, {
       message: "Password must be at least 6 characters.",
     }),
