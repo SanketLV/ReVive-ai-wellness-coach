@@ -65,8 +65,14 @@ export default function SignInForm() {
           router.push("/dashboard");
         },
         onError: ({ error }) => {
-          setError(error.message);
+          // Map specific error codes to user-friendly messages
+          const userMessage =
+            error.code === 'INVALID_CREDENTIALS'
+              ? 'Invalid email or password'
+              : 'An error occurred. Please try again.';
+          setError(userMessage);
           setIsLoading(false);
+        },
         },
       }
     );
