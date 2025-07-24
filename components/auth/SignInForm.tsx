@@ -67,12 +67,11 @@ export default function SignInForm() {
         onError: ({ error }) => {
           // Map specific error codes to user-friendly messages
           const userMessage =
-            error.code === 'INVALID_CREDENTIALS'
-              ? 'Invalid email or password'
-              : 'An error occurred. Please try again.';
+            error.code === "INVALID_CREDENTIALS"
+              ? "Invalid email or password"
+              : "An error occurred. Please try again.";
           setError(userMessage);
           setIsLoading(false);
-        },
         },
       }
     );
