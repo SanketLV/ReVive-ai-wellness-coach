@@ -25,7 +25,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "../ui/form";
+} from "../../../../components/ui/form";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -140,10 +140,7 @@ export default function SignInForm() {
 
               <p className="text-sm text-center text-muted-foreground">
                 Don&apos;t have an account?{" "}
-                <Link
-                  href="/auth/sign-up"
-                  className="text-primary hover:underline"
-                >
+                <Link href="/sign-up" className="text-primary hover:underline">
                   Sign up
                 </Link>
               </p>

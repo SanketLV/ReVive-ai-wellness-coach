@@ -24,8 +24,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "../ui/form";
-import { Alert, AlertTitle } from "../ui/alert";
+} from "../../../../components/ui/form";
+import { Alert, AlertTitle } from "../../../../components/ui/alert";
 import { OctagonAlertIcon } from "lucide-react";
 
 const formSchema = z
@@ -189,10 +189,7 @@ export default function SignUpForm() {
 
               <p className="text-sm text-center text-muted-foreground">
                 Already have an account?{" "}
-                <Link
-                  href="/auth/sign-in"
-                  className="text-primary hover:underline"
-                >
+                <Link href="/sign-in" className="text-primary hover:underline">
                   Sign in
                 </Link>
               </p>
