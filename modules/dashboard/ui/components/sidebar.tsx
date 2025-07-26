@@ -29,12 +29,12 @@ const items = [
   },
   {
     title: "Chat",
-    url: "/Chat",
+    url: "/chat",
     icon: Bot,
   },
   {
     title: "Recommendation",
-    url: "/Recommendation",
+    url: "/recommendation",
     icon: Award,
   },
   {
@@ -75,10 +75,10 @@ export default function DashboardSidebar() {
                     )}
                     isActive={pathname === item.url}
                   >
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

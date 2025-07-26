@@ -11,7 +11,7 @@ export default function Dashboardlayout({
     <SidebarProvider>
       <DashboardSidebar />
       <main className="flex flex-col h-auto w-screen bg-muted">
-        <div className="w-full">{children}</div>
+        <div className="w-full container mx-auto">{children}</div>
       </main>
     </SidebarProvider>
   );
