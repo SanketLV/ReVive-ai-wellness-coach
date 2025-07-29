@@ -26,8 +26,6 @@ export default function WorkingChatbot() {
     },
   });
 
-  console.log("Error:", error);
-
   // Check if the AI is currently generating a response
   const isLoading = status === "submitted" || status === "streaming";
 

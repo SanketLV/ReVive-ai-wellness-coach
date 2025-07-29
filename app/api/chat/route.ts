@@ -5,6 +5,18 @@ import { openai } from "@ai-sdk/openai";
 import { streamText, smoothStream } from "ai";
 import { headers } from "next/headers";
 
+interface RedisSearchResult {
+  total: number;
+  documents: {
+    id: string;
+    value: {
+      response: string;
+      inputText: string;
+      similarity: string;
+    };
+  }[];
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth.api.getSession({
@@ -18,7 +30,14 @@ export async function POST(req: Request) {
 
     const { messages } = await req.json();
 
-    await ensureIndexExists();
+    // Make sure to await this and handle any errors
+    try {
+      await ensureIndexExists();
+      console.log("Index check completed");
+    } catch (indexError) {
+      console.error("Error ensuring index exists:", indexError);
+      // Continue anyway - we'll handle search errors below
+    }
 
     //* 1. Embed user Message
     const lastMessage = messages[messages.length - 1];
@@ -27,7 +46,7 @@ export async function POST(req: Request) {
     //* 2. Search Redis Vector Index
     const embedding = await getEmbedding(inputText);
     const vectorBuffer = vectorToBuffer(embedding);
-    const searchResult = await redisClient.ft.search(
+    const searchResult = (await redisClient.ft.search(
       "chat_cache",
       `*=>[KNN 3 @embedding $vec_param AS similarity]`,
       {
@@ -38,26 +57,26 @@ export async function POST(req: Request) {
         SORTBY: "similarity",
         DIALECT: 2,
       }
-    );
+    )) as RedisSearchResult;
 
     console.log("Search result:", JSON.stringify(searchResult));
 
     //* 3. If Similar message found, return cached response
     if (searchResult && searchResult.documents.length > 0) {
       const bestMatch = searchResult.documents[0];
-      const similarity = parseFloat(bestMatch.value.similarity as string);
+      const similarity = parseFloat(bestMatch.value.similarity);
 
-      // Use a similarity threshold (0.95 means 95% similar)
-      // Adjust this threshold based on your needs
-      const SIMILARITY_THRESHOLD = 0.9;
-      if (similarity >= SIMILARITY_THRESHOLD) {
+      // For Redis COSINE, the result is a distance (lower is better).
+      // A distance of 0.1 is equivalent to 90% similarity (1 - 0.9).
+      const DISTANCE_THRESHOLD = 0.1;
+      if (similarity <= DISTANCE_THRESHOLD) {
         const cached = bestMatch.value.response as string;
 
         //* Use AI SDK's format for cached response
         const result = streamText({
           model: openai("gpt-4o-mini"),
           messages: [{ role: "assistant", content: cached }],
-          maxTokens: 2,
+          maxTokens: 500,
         });
 
         const response = result.toDataStreamResponse();
