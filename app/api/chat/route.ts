@@ -36,7 +36,8 @@ export async function POST(req: Request) {
       console.log("Index check completed");
     } catch (indexError) {
       console.error("Error ensuring index exists:", indexError);
-      // Continue anyway - we'll handle search errors below
+      // Return error response if index is critical
+      return new Response("Search index unavailable", { status: 503 });
     }
 
     //* 1. Embed user Message
