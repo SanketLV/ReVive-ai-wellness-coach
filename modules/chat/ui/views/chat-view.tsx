@@ -2,7 +2,7 @@
 
 import { MenuIcon, PanelLeftCloseIcon, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
-import { useChat } from "ai/react";
+import { useChat } from "@ai-sdk/react";
 import AiInput from "../components/ai-input";
 import { useSidebar } from "@/components/ui/sidebar";
 import ChatBubble from "../components/chat-bubble";
@@ -20,9 +20,11 @@ export default function WorkingChatbot() {
     error,
   } = useChat({
     api: "/api/chat",
+    onResponse: (response) => {
+      const source = response.headers.get("X-Response-Source");
+      console.log("Response Source:", source);
+    },
   });
-
-  console.log("Error:", error);
 
   // Check if the AI is currently generating a response
   const isLoading = status === "submitted" || status === "streaming";
@@ -113,7 +115,7 @@ export default function WorkingChatbot() {
         </div>
 
         <form
-          className="my-2 boder-2 rounded-xl shadow-md"
+          className="my-2 border-2 rounded-xl shadow-md"
           onSubmit={handleSubmit}
         >
           <div className="relative rounded-xl">
