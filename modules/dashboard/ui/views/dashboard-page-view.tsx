@@ -14,6 +14,15 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MenuIcon, PanelLeftCloseIcon } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
+import DashboardForm from "../components/dashboard-form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface MetricData {
   date: string;
@@ -54,16 +63,39 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        {isMobile ? (
-          <MenuIcon className="size-6" onClick={toggleSidebar} />
-        ) : (
-          <PanelLeftCloseIcon
-            className="size-6 cursor-pointer"
-            onClick={toggleSidebar}
-          />
-        )}
-        <h1 className="text-3xl font-bold font-rockSalt">Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {isMobile ? (
+            <MenuIcon className="size-6" onClick={toggleSidebar} />
+          ) : (
+            <PanelLeftCloseIcon
+              className="size-6 cursor-pointer"
+              onClick={toggleSidebar}
+            />
+          )}
+          <h1 className="text-xl lg:text-3xl font-bold font-rockSalt">
+            Dashboard
+          </h1>
+        </div>
+
+        <div>
+          <Dialog>
+            <DialogTrigger className="bg-white px-4 py-2 rounded-xl border shadow-sm cursor-pointer hover:scale-105 transition-transform duration-100">
+              Add Data
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Today's Data</DialogTitle>
+                <DialogDescription>
+                  Add your daily sleep hours and steps data. This data will be
+                  visible only to you and will be used to generate charts and
+                  statistics on this page.
+                </DialogDescription>
+              </DialogHeader>
+              <DashboardForm />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
