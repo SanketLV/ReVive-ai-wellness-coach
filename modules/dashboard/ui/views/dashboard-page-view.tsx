@@ -23,11 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
-interface MetricData {
-  date: string;
-  value: number;
-}
+import { getStreak, getTodayStats, getWeeklyAverage } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { toggleSidebar, isMobile } = useSidebar();
@@ -36,29 +32,14 @@ export default function DashboardPage() {
   const [stepsData, setStepsData] = useState<MetricData[] | null>(null);
 
   useEffect(() => {
-    // Simulated dummy sleep and step data for past 7 days
-    const dummySleepData = [
-      { date: "07-18", value: 7.2 },
-      { date: "07-19", value: 6.5 },
-      { date: "07-20", value: 8.1 },
-      { date: "07-21", value: 6.9 },
-      { date: "07-22", value: 7.0 },
-      { date: "07-23", value: 6.7 },
-      { date: "07-24", value: 7.4 },
-    ];
-
-    const dummyStepsData = [
-      { date: "07-18", value: 8320 },
-      { date: "07-19", value: 10120 },
-      { date: "07-20", value: 9270 },
-      { date: "07-21", value: 11030 },
-      { date: "07-22", value: 9800 },
-      { date: "07-23", value: 10540 },
-      { date: "07-24", value: 10230 },
-    ];
-
-    setSleepData(dummySleepData);
-    setStepsData(dummyStepsData);
+    // Simulated sleep and step data for past 7 days
+    const fetchData = async () => {
+      const res = await fetch("/api/metrics");
+      const { sleepData, stepsData } = await res.json();
+      setSleepData(sleepData);
+      setStepsData(stepsData);
+    };
+    fetchData();
   }, []);
 
   return (
@@ -149,7 +130,9 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="h-20">
             {/* Placeholder - Populate from API */}
-            <p className="text-xl font-semibold">7 hrs sleep, 10,230 steps</p>
+            <p className="text-xl font-semibold">
+              {getTodayStats(sleepData, stepsData)}
+            </p>
           </CardContent>
         </Card>
 
@@ -158,7 +141,10 @@ export default function DashboardPage() {
             <CardTitle>Weekly Average</CardTitle>
           </CardHeader>
           <CardContent className="h-20">
-            <p className="text-xl font-semibold">6.8 hrs sleep, 9,210 steps</p>
+            <p className="text-xl font-semibold">
+              {getWeeklyAverage(sleepData)} hrs sleep,{" "}
+              {getWeeklyAverage(stepsData)} steps
+            </p>
           </CardContent>
         </Card>
 
@@ -167,7 +153,7 @@ export default function DashboardPage() {
             <CardTitle>Streak</CardTitle>
           </CardHeader>
           <CardContent className="h-20">
-            <p className="text-xl font-semibold">5 days</p>
+            <p className="text-xl font-semibold">{getStreak(sleepData)} days</p>
           </CardContent>
         </Card>
       </div>
