@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     await Promise.all(tsPromises);
 
     const jsonData = await redisClient.json.set(
-      `latest:health:${userId}:`,
+      `latest:health:${userId}`,
       "$",
       {
         steps,
