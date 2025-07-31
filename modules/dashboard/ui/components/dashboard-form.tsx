@@ -48,15 +48,19 @@ const DashboardForm = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      // await axios.post("/api/ingest", {
-      //   steps: Number(values.steps),
-      //   sleep: Number(values.sleep),
-      //   mood: values.mood,
-      //   water: values.water ? Number(values.water) : undefined,
-      // });
-      console.log("Values:", values);
-      toast.success("Health data logged!");
-      form.reset();
+      const res = await fetch("/api/ingest", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
+      });
+
+      if (res.ok) {
+        toast.success("Health data logged!");
+      } else {
+        toast.error("Failed to send the health data.");
+      }
     } catch (err) {
       toast.error("Failed to log data");
     }
@@ -65,7 +69,7 @@ const DashboardForm = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Log Health Data</CardTitle>
+        <CardTitle>Health Data</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>

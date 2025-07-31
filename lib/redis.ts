@@ -52,3 +52,32 @@ export async function ensureIndexExists() {
     throw error;
   }
 }
+
+export async function readHealthDataAfter(
+  userId: string,
+  afterId: string = "0"
+): Promise<Array<{ id: string; timestamp: Date; data: Record<string, any> }>> {
+  try {
+    const result = await redisClient.xRead(
+      { key: `stream:health:${userId}`, id: afterId },
+      { COUNT: 100, BLOCK: 0 } // BLOCK: 0 means don't block, return immediately
+    );
+
+    if (result && Array.isArray(result) && result.length > 0) {
+      const streamData = result[0] as {
+        name: string;
+        messages: { id: string; message: { [x: string]: string } }[];
+      };
+      return streamData.messages.map((entry) => ({
+        id: entry.id,
+        timestamp: new Date(parseInt(entry.id.split("-")[0])),
+        data: entry.message,
+      }));
+    }
+
+    return [];
+  } catch (error) {
+    console.error("Error reading stream after ID:", error);
+    return [];
+  }
+}
