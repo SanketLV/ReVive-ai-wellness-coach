@@ -19,16 +19,39 @@ export async function GET() {
     const oneDay = 24 * 60 * 60 * 1000;
     const fromTimestamp = now - 6 * oneDay;
 
-    const stepsRange = await redisClient.ts.range(
-      `ts:steps:${userId}`,
-      fromTimestamp,
-      now
-    );
-    const sleepRange = await redisClient.ts.range(
-      `ts:sleep:${userId}`,
-      fromTimestamp,
-      now
-    );
+    let stepsRange: { timestamp: number; value: number }[] = [];
+    let sleepRange: { timestamp: number; value: number }[] = [];
+    let waterRange: { timestamp: number; value: number }[] = [];
+
+    try {
+      stepsRange = await redisClient.ts.range(
+        `ts:steps:${userId}`,
+        fromTimestamp,
+        now
+      );
+    } catch (error) {
+      stepsRange = [];
+    }
+
+    try {
+      sleepRange = await redisClient.ts.range(
+        `ts:sleep:${userId}`,
+        fromTimestamp,
+        now
+      );
+    } catch (error) {
+      sleepRange = [];
+    }
+
+    try {
+      waterRange = await redisClient.ts.range(
+        `ts:water:${userId}`,
+        fromTimestamp,
+        now
+      );
+    } catch (error) {
+      waterRange = [];
+    }
 
     const sleepData = sleepRange.map(
       ({ timestamp, value }: { timestamp: number; value: number }) => ({
@@ -44,7 +67,21 @@ export async function GET() {
       })
     );
 
-    return NextResponse.json({ sleepData, stepsData }, { status: 200 });
+    const waterData = waterRange.map(
+      ({ timestamp, value }: { timestamp: number; value: number }) => ({
+        date: getFormattedDate(timestamp),
+        value: Number(value),
+      })
+    );
+
+    return NextResponse.json(
+      {
+        sleepData,
+        stepsData,
+        waterData,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error fetching health data:", error);
     return NextResponse.json(

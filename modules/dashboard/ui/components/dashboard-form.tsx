@@ -24,10 +24,19 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DialogClose } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
 
 const mood = ["Sad", "Neutral", "Happy", "Excited"] as const;
 
 const formSchema = z.object({
+  date: z.date({ message: "Date is required." }),
   steps: z.string().min(1, { message: "Steps are required." }),
   sleep: z.string().min(1, { message: "Sleep is required." }),
   mood: z.enum([...mood, ""]),
@@ -35,10 +44,10 @@ const formSchema = z.object({
 });
 
 const DashboardForm = () => {
-  // shadcn form setup
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      date: new Date(),
       steps: "",
       sleep: "",
       mood: "",
@@ -47,19 +56,26 @@ const DashboardForm = () => {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const payload = {
+      ...values,
+      timestamp: values.date.getTime(),
+    };
+    console.log("Submitting:", payload);
     try {
       const res = await fetch("/api/ingest", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
+
+      const data = await res.json();
 
       if (res.ok) {
         toast.success("Health data logged!");
       } else {
-        toast.error("Failed to send the health data.");
+        toast.error(data.error || "Failed to send the health data.");
       }
     } catch (err) {
       toast.error("Failed to log data");
@@ -77,6 +93,39 @@ const DashboardForm = () => {
             onSubmit={form.handleSubmit(onSubmit)}
             className="flex flex-col space-y-4"
           >
+<FormField
+  control={form.control}
+  name="date"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Date</FormLabel>
+      <Popover>
+        <PopoverTrigger asChild>
+          <FormControl>
+            <Button variant="outline" className="">
+              {field.value ? (
+                format(field.value, "PPP")
+              ) : (
+                <span>Pick a Date</span>
+              )}
+              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+            </Button>
+          </FormControl>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={field.value}
+            onSelect={field.onChange}
+            disabled={(date) => date > new Date()}
+            captionLayout="dropdown"
+          />
+        </PopoverContent>
+      </Popover>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
             <FormField
               control={form.control}
               name="steps"
