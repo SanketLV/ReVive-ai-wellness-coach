@@ -30,14 +30,23 @@ export default function DashboardPage() {
 
   const [sleepData, setSleepData] = useState<MetricData[] | null>(null);
   const [stepsData, setStepsData] = useState<MetricData[] | null>(null);
+  const [moodData, setMoodData] = useState<MetricData[] | null>(null);
+  const [waterData, setWaterData] = useState<MetricData[] | null>(null);
 
   useEffect(() => {
     // Simulated sleep and step data for past 7 days
     const fetchData = async () => {
       const res = await fetch("/api/metrics");
-      const { sleepData, stepsData } = await res.json();
+      const {
+        sleepData,
+        stepsData,
+        // moodData,
+        waterData,
+      } = await res.json();
       setSleepData(sleepData);
       setStepsData(stepsData);
+      // setMoodData(moodData);
+      setWaterData(waterData);
     };
     fetchData();
   }, []);
@@ -131,7 +140,9 @@ export default function DashboardPage() {
           <CardContent className="h-20">
             {/* Placeholder - Populate from API */}
             <p className="text-xl font-semibold">
-              {getTodayStats(sleepData, stepsData)}
+              {sleepData && stepsData
+                ? getTodayStats(sleepData, stepsData)
+                : "No Data"}
             </p>
           </CardContent>
         </Card>
@@ -142,8 +153,8 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="h-20">
             <p className="text-xl font-semibold">
-              {getWeeklyAverage(sleepData)} hrs sleep,{" "}
-              {getWeeklyAverage(stepsData)} steps
+              {sleepData ? getWeeklyAverage(sleepData) : "No data"} hrs sleep,{" "}
+              {stepsData ? getWeeklyAverage(stepsData) : ""} steps
             </p>
           </CardContent>
         </Card>
@@ -153,7 +164,9 @@ export default function DashboardPage() {
             <CardTitle>Streak</CardTitle>
           </CardHeader>
           <CardContent className="h-20">
-            <p className="text-xl font-semibold">{getStreak(sleepData)} days</p>
+            <p className="text-xl font-semibold">
+              {sleepData ? getStreak(sleepData) : "No data"} days
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -162,6 +175,11 @@ export default function DashboardPage() {
         <CardContent className="flex items-center space-x-4 p-6">
           <span className="text-2xl">😊</span>
           <p className="text-lg font-medium">Feeling energetic and positive</p>
+          <p className="text-lg font-medium">
+            {waterData && waterData.length > 0
+              ? `Water: ${waterData[waterData.length - 1].value} L`
+              : "No water data"}
+          </p>
         </CardContent>
       </Card>
     </div>
