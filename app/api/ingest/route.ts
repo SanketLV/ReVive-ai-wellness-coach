@@ -16,9 +16,25 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const { steps, sleep, mood, water } = body;
+    const { steps, sleep, mood, water, timestamp } = body;
 
-    const storedData = await redisClient.xAdd(`stream:health:${userId}`, "*", {
+    // Check if an entry for this timestamp already exists in the stream
+    const existing = await redisClient.xRange(
+      `stream:health:${userId}`,
+      String(timestamp),
+      String(timestamp)
+    );
+    if (existing && existing.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Data for this date already exists. Please edit or delete it first.",
+        },
+        { status: 409 }
+      );
+    }
+
+    await redisClient.xAdd(`stream:health:${userId}`, String(timestamp), {
       type: "health",
       steps,
       sleep,
@@ -26,28 +42,24 @@ export async function POST(req: NextRequest) {
       ...(water ? { water } : {}),
     });
 
-    console.log("StoredData:", storedData);
-
     const tsPromises = [
-      redisClient.ts.add(`ts:steps:${userId}`, "*", steps),
-      redisClient.ts.add(`ts:sleep:${userId}`, "*", sleep),
+      redisClient.ts.add(`ts:steps:${userId}`, timestamp, steps),
+      redisClient.ts.add(`ts:sleep:${userId}`, timestamp, sleep),
     ];
     if (water) {
-      tsPromises.push(redisClient.ts.add(`ts:water:${userId}`, "*", water));
+      tsPromises.push(
+        redisClient.ts.add(`ts:water:${userId}`, timestamp, water)
+      );
     }
 
     await Promise.all(tsPromises);
 
-    const jsonData = await redisClient.json.set(
-      `latest:health:${userId}`,
-      "$",
-      {
-        steps,
-        sleep,
-        mood,
-        water: water || null,
-      }
-    );
+    await redisClient.json.set(`latest:health:${userId}:`, "$", {
+      steps,
+      sleep,
+      mood,
+      water: water || null,
+    });
 
     return NextResponse.json(
       { message: "Successfully Added the data." },
