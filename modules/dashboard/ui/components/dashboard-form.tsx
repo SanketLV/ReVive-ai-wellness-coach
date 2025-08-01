@@ -93,39 +93,39 @@ const DashboardForm = () => {
             onSubmit={form.handleSubmit(onSubmit)}
             className="flex flex-col space-y-4"
           >
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button variant="outline" className="">
-                          {field.name ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a Date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) => date > new Date()}
-                        captionLayout="dropdown"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
+<FormField
+  control={form.control}
+  name="date"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Date</FormLabel>
+      <Popover>
+        <PopoverTrigger asChild>
+          <FormControl>
+            <Button variant="outline" className="">
+              {field.value ? (
+                format(field.value, "PPP")
+              ) : (
+                <span>Pick a Date</span>
               )}
-            />
+              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+            </Button>
+          </FormControl>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={field.value}
+            onSelect={field.onChange}
+            disabled={(date) => date > new Date()}
+            captionLayout="dropdown"
+          />
+        </PopoverContent>
+      </Popover>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
             <FormField
               control={form.control}
               name="steps"
