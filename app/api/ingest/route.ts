@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { readHealthDataAfter, redisClient } from "@/lib/redis";
+import { redisClient } from "@/lib/redis";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 

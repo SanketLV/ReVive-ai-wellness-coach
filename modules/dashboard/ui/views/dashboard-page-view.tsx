@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const [stepsData, setStepsData] = useState<MetricData[] | null>(null);
   const [moodData, setMoodData] = useState<MetricData[] | null>(null);
   const [waterData, setWaterData] = useState<MetricData[] | null>(null);
+  const [refreshKey, setRefreshKey] = useState<number>(0);
 
   useEffect(() => {
     // Simulated sleep and step data for past 7 days
@@ -49,7 +50,7 @@ export default function DashboardPage() {
       setWaterData(waterData);
     };
     fetchData();
-  }, []);
+  }, [refreshKey]);
 
   return (
     <div className="p-6 space-y-6">
@@ -82,7 +83,7 @@ export default function DashboardPage() {
                   statistics on this page.
                 </DialogDescription>
               </DialogHeader>
-              <DashboardForm />
+              <DashboardForm onSuccess={() => setRefreshKey((k) => k + 1)} />
             </DialogContent>
           </Dialog>
         </div>
