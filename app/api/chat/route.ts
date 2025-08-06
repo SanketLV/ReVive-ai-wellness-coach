@@ -56,6 +56,7 @@ export async function POST(req: Request) {
       );
       healthContextString =
         healthDataService.formatHealthContextForAI(healthContext);
+      console.log("Health context string:", healthContextString);
       console.log("Health context retrieved successfully");
     } catch (error) {
       console.warn("Failed to get health context:", error);

@@ -22,31 +22,35 @@ export function vectorToBuffer(vector: number[]): Buffer {
 // Ensures the redis vector index is created only once
 export async function ensureIndexExists() {
   try {
-    // Create the index with proper schema
-    await redisClient.ft.create(
-      "chat_cache",
-      {
-        "$.embedding": {
-          type: "VECTOR",
-          ALGORITHM: "HNSW",
-          TYPE: "FLOAT32",
-          DIM: VECTOR_DIMENSIONS,
-          DISTANCE_METRIC: "COSINE",
-          M: 16,
-          AS: "embedding",
-          EF_CONSTRUCTION: 200,
+    const exists = await redisClient.sendCommand(["FT.INFO", "chat_cache"]);
+    if (!exists) {
+      // Create the index with proper schema
+      await redisClient.ft.create(
+        "chat_cache",
+        {
+          "$.embedding": {
+            type: "VECTOR",
+            ALGORITHM: "HNSW",
+            TYPE: "FLOAT32",
+            DIM: VECTOR_DIMENSIONS,
+            DISTANCE_METRIC: "COSINE",
+            M: 16,
+            AS: "embedding",
+            EF_CONSTRUCTION: 200,
+          },
+          "$.response": { type: "TEXT", AS: "response" },
+          "$.userId": { type: "TEXT", AS: "userId" },
+          "$.timestamp": { type: "NUMERIC", AS: "timestamp" },
+          "$.inputText": { type: "TEXT", AS: "inputText" },
         },
-        "$.response": { type: "TEXT", AS: "response" },
-        "$.userId": { type: "TEXT", AS: "userId" },
-        "$.timestamp": { type: "NUMERIC", AS: "timestamp" },
-        "$.inputText": { type: "TEXT", AS: "inputText" },
-      },
-      {
-        ON: "JSON",
-        PREFIX: "chat:",
-      }
-    );
-    console.log("Vector index created successfully");
+        {
+          ON: "JSON",
+          PREFIX: "chat:",
+        }
+      );
+      console.log("Vector index created successfully");
+    }
+    console.log("Vector index already existed.");
   } catch (error: unknown) {
     console.error("Redis index creation failed:", error);
     throw error;

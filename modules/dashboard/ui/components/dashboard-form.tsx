@@ -61,12 +61,17 @@ const DashboardForm = ({ onSuccess }: Props) => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const payload = {
-      ...values,
+      steps: parseInt(values.steps),
+      sleep: parseFloat(values.sleep),
+      mood: values.mood,
+      water: values.water ? parseFloat(values.water) : undefined,
       timestamp: values.date.getTime(),
     };
+
     console.log("Submitting:", payload);
+
     try {
-      const res = await fetch("/api/ingest", {
+      const res = await fetch("/api/health", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -77,7 +82,7 @@ const DashboardForm = ({ onSuccess }: Props) => {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success("Health data logged!");
+        toast.success("Health data logged successfully! 🎉");
         if (onSuccess) onSuccess();
       } else {
         toast.error(data.error || "Failed to send the health data.");
