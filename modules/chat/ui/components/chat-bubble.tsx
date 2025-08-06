@@ -2,6 +2,8 @@ import GeneratedAvatar from "@/components/generated-avatar";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { Bot } from "lucide-react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ChatBubbleProps {
   message: string;
@@ -56,7 +58,11 @@ export default function ChatBubble({
                 : "border-border bg-card text-card-foreground rounded-tl-none border"
             )}
           >
-            <p className="whitespace-pre-wrap">{message}</p>
+            {/* <p className="whitespace-pre-wrap"> */}
+            <div className="prose-chat">
+              <Markdown remarkPlugins={[remarkGfm]}>{message}</Markdown>
+            </div>
+            {/* </p> */}
           </div>
           <span
             className={cn(

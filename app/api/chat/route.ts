@@ -1,5 +1,6 @@
 import { getEmbedding } from "@/lib/ai";
 import { auth } from "@/lib/auth";
+import { HealthDataService } from "@/lib/health-data-service";
 import { ensureIndexExists, redisClient, vectorToBuffer } from "@/lib/redis";
 import { openai } from "@ai-sdk/openai";
 import { streamText, smoothStream } from "ai";
@@ -40,13 +41,35 @@ export async function POST(req: Request) {
       return new Response("Search index unavailable", { status: 503 });
     }
 
-    //* 1. Embed user Message
     const lastMessage = messages[messages.length - 1];
     const inputText = lastMessage.parts?.[0]?.text || lastMessage.content;
 
-    //* 2. Search Redis Vector Index
-    const embedding = await getEmbedding(inputText);
+    //* Get health conetxt for the user's query
+    const healthDataService = new HealthDataService();
+    let healthContext = null;
+    let healthContextString = "";
+
+    try {
+      healthContext = await healthDataService.getUserHealthContext(
+        userId,
+        inputText
+      );
+      healthContextString =
+        healthDataService.formatHealthContextForAI(healthContext);
+      console.log("Health context string:", healthContextString);
+      console.log("Health context retrieved successfully");
+    } catch (error) {
+      console.warn("Failed to get health context:", error);
+    }
+
+    //* 1. Embed user Message
+    const embeddingText = healthContextString
+      ? `${inputText}\n${healthContextString}`
+      : inputText;
+    const embedding = await getEmbedding(embeddingText);
     const vectorBuffer = vectorToBuffer(embedding);
+
+    //* 2. Search Redis Vector Index
     const searchResult = (await redisClient.ft.search(
       "chat_cache",
       `*=>[KNN 3 @embedding $vec_param AS similarity]`,
@@ -69,7 +92,9 @@ export async function POST(req: Request) {
 
       // For Redis COSINE, the result is a distance (lower is better).
       // A distance of 0.1 is equivalent to 90% similarity (1 - 0.9).
-      const DISTANCE_THRESHOLD = 0.1;
+      // const DISTANCE_THRESHOLD = 0.1;
+      const DISTANCE_THRESHOLD = healthContext ? 0.08 : 0.1;
+
       if (similarity <= DISTANCE_THRESHOLD) {
         const cached = bestMatch.value.response as string;
 
@@ -87,22 +112,38 @@ export async function POST(req: Request) {
       }
     }
 
-    //* 4. No Match - stream AI response
+    //* 4. No Match - Generate new Response with health context
+    const systemPrompt = `You are an AI wellness coach. Your role is to provide helpful, encouraging, and evidence-based advice on health, fitness, nutrition, and mental well-being.
+
+    Guidelines:
+    - Be supportive and motivational
+    - Provide practical, actionable advice
+    - Ask clarifying questions when needed
+    - Encourage professional medical consultation for serious health concerns
+    - Focus on sustainable lifestyle changes
+    - Be empathetic and understanding
+    - Use the provided health data context to give personalized advice
+    - Reference specific data points when relevant (e.g., "I see your sleep average this week is...")
+    - Celebrate achievements and provide encouragement for areas needing improvement
+    - Make recommendations based on trends and patterns in their data
+
+    ${healthContextString}
+
+    When the user's health data is available, use it to:
+    1. Provide personalized insights and recommendations
+    2. Track progress toward their goals
+    3. Identify patterns and trends
+    4. Celebrate achievements
+    5. Offer specific, data-driven advice
+
+    Remember to be encouraging and focus on small, sustainable improvements rather than dramatic changes.`;
 
     const result = streamText({
       model: openai("gpt-4o-mini"),
       messages: [
         {
           role: "system",
-          content: `You are an AI wellness coach. Your role is to provide helpful, encouraging, and evidence-based advice on health, fitness, nutrition, and mental well-being.
-
-          Guidelines:
-          - Be supportive and motivational
-          - Provide practical, actionable advice
-          - Ask clarifying questions when needed
-          - Encourage professional medical consultation for serious health concerns
-          - Focus on sustainable lifestyle changes
-          - Be empathetic and understanding`,
+          content: systemPrompt,
         },
         ...messages,
       ],
@@ -121,6 +162,7 @@ export async function POST(req: Request) {
           userId,
           timestamp,
           inputText: inputText.toLowerCase().trim(),
+          hasHealthContext: !!healthContext, //* Track whether health context was used
         };
 
         await redisClient.json.set(key, "$", chatData);
@@ -130,6 +172,7 @@ export async function POST(req: Request) {
     const response = result.toDataStreamResponse();
     //* Add custom header to indicate generated response
     response.headers.set("X-Response-Source", "generated");
+    response.headers.set("X-Health-Context", healthContext ? "true" : "false");
     return response;
   } catch (error) {
     console.error("Error in chat API:", error);

@@ -35,6 +35,10 @@ import { Calendar } from "@/components/ui/calendar";
 
 const mood = ["Sad", "Neutral", "Happy", "Excited"] as const;
 
+interface Props {
+  onSuccess?: () => void;
+}
+
 const formSchema = z.object({
   date: z.date({ message: "Date is required." }),
   steps: z.string().min(1, { message: "Steps are required." }),
@@ -43,7 +47,7 @@ const formSchema = z.object({
   water: z.string().optional(),
 });
 
-const DashboardForm = () => {
+const DashboardForm = ({ onSuccess }: Props) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -57,12 +61,17 @@ const DashboardForm = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const payload = {
-      ...values,
+      steps: parseInt(values.steps),
+      sleep: parseFloat(values.sleep),
+      mood: values.mood,
+      water: values.water ? parseFloat(values.water) : undefined,
       timestamp: values.date.getTime(),
     };
+
     console.log("Submitting:", payload);
+
     try {
-      const res = await fetch("/api/ingest", {
+      const res = await fetch("/api/health", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -73,7 +82,8 @@ const DashboardForm = () => {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success("Health data logged!");
+        toast.success("Health data logged successfully! 🎉");
+        if (onSuccess) onSuccess();
       } else {
         toast.error(data.error || "Failed to send the health data.");
       }
@@ -93,39 +103,39 @@ const DashboardForm = () => {
             onSubmit={form.handleSubmit(onSubmit)}
             className="flex flex-col space-y-4"
           >
-<FormField
-  control={form.control}
-  name="date"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>Date</FormLabel>
-      <Popover>
-        <PopoverTrigger asChild>
-          <FormControl>
-            <Button variant="outline" className="">
-              {field.value ? (
-                format(field.value, "PPP")
-              ) : (
-                <span>Pick a Date</span>
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button variant="outline" className="">
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a Date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => date > new Date()}
+                        captionLayout="dropdown"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
               )}
-              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-            </Button>
-          </FormControl>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={field.value}
-            onSelect={field.onChange}
-            disabled={(date) => date > new Date()}
-            captionLayout="dropdown"
-          />
-        </PopoverContent>
-      </Popover>
-      <FormMessage />
-    </FormItem>
-  )}
-/>
+            />
             <FormField
               control={form.control}
               name="steps"
