@@ -487,7 +487,7 @@ export class HealthInsightService {
         )
         .slice(0, 50);
 
-      await redisClient.json.set(key, "*", allInsights as any);
+      await redisClient.json.set(key, "$", allInsights as any);
 
       // Set expiration for 30 days
       await redisClient.expire(key, 30 * 24 * 60 * 60);
@@ -524,7 +524,7 @@ export class HealthInsightService {
         const progressKey = `progress:${userId}:${goal.metric}:${
           new Date().toISOString().split("T")[0]
         }`;
-        await redisClient.json.set(progressKey, "*", {
+        await redisClient.json.set(progressKey, "$", {
           metric: goal.metric,
           target: goal.target,
           current,

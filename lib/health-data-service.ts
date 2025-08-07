@@ -71,7 +71,7 @@ export class HealthDataService {
 
     //* If no specific metrics mentioned, includes all
     if (metrics.length === 0) {
-      metrics = ["sleep", "steps", "water", "moody"];
+      metrics = ["sleep", "steps", "water", "mood"];
     }
 
     //* Detect Intent
