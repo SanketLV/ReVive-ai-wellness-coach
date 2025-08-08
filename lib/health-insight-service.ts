@@ -1,4 +1,5 @@
 import { redisClient } from "./redis";
+import type { HealthInsight, UserGoal } from "@/types";
 
 interface HealthEntry {
   steps: number;

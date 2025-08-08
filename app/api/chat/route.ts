@@ -29,6 +29,16 @@ export async function POST(req: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
+    // Basic user-based rate limit: 60 requests per 60 seconds
+    const rateKey = `ratelimit:chat:${userId}`;
+    const count = await redisClient.incr(rateKey);
+    if (count === 1) {
+      await redisClient.expire(rateKey, 60);
+    }
+    if (count > 60) {
+      return new Response("Too Many Requests", { status: 429 });
+    }
+
     const { messages } = await req.json();
 
     // Make sure to await this and handle any errors

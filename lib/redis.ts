@@ -22,9 +22,13 @@ export function vectorToBuffer(vector: number[]): Buffer {
 // Ensures the redis vector index is created only once
 export async function ensureIndexExists() {
   try {
-    const exists = await redisClient.sendCommand(["FT.INFO", "chat_cache"]);
-    if (!exists) {
-      // Create the index with proper schema
+    // If the index exists, this succeeds; if not, it throws
+    await redisClient.sendCommand(["FT.INFO", "chat_cache"]);
+    console.log("Vector index already existed.");
+    return;
+  } catch (infoError) {
+    // Create the index when it does not exist
+    try {
       await redisClient.ft.create(
         "chat_cache",
         {
@@ -49,11 +53,10 @@ export async function ensureIndexExists() {
         }
       );
       console.log("Vector index created successfully");
+    } catch (createError) {
+      console.error("Redis index creation failed:", createError);
+      throw createError;
     }
-    console.log("Vector index already existed.");
-  } catch (error: unknown) {
-    console.error("Redis index creation failed:", error);
-    throw error;
   }
 }
 
