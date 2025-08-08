@@ -2,22 +2,7 @@ import { auth } from "@/lib/auth";
 import { redisClient } from "@/lib/redis";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-
-interface UserHealthProfile {
-  userId: string;
-  goals: {
-    [key: string]: {
-      target: number;
-      priority: "high" | "medium" | "low";
-    };
-  };
-  preferences: {
-    units: "metric" | "imperial";
-    reminderTimes: string[];
-  };
-  healthConditions?: string[];
-  lastUpdated: Date;
-}
+import type { UserHealthProfile } from "@/types";
 
 //* GET user health profile
 export async function GET() {

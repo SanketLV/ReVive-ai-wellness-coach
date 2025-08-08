@@ -1,16 +1,16 @@
-interface MetricData {
+export interface MetricData {
   date: string;
   value: number;
 }
 
-interface HealthTrend {
+export interface HealthTrend {
   metric: string;
   direction: "up" | "down" | "stable";
   percentage: number;
   period: string;
 }
 
-interface UserGoal {
+export interface UserGoal {
   metric: string;
   target: number;
   current: number;
@@ -18,7 +18,7 @@ interface UserGoal {
   priority: "high" | "medium" | "low";
 }
 
-interface HealthInsight {
+export interface HealthInsight {
   type: "achievement" | "warning" | "suggestion" | "milestone";
   message: string;
   metric?: string;
@@ -26,8 +26,8 @@ interface HealthInsight {
   timestamp: Date;
 }
 
-interface HealthContext {
-  timeframe: "today" | "week" | "month" | "year";
+export interface HealthContext {
+  timeframe: "today" | "yesterday" | "day_before_yesterday" | "three_days_ago" | "week" | "last_week" | "month" | "year";
   metrics: ("sleep" | "steps" | "mood" | "water")[];
   trends: HealthTrend[];
   goals: UserGoal[];
@@ -40,7 +40,7 @@ interface HealthContext {
   };
 }
 
-interface QueryAnalysis {
+export interface QueryAnalysis {
   intent: "compare" | "trend" | "goal_progress" | "recommendation" | "general";
   timeframe: string;
   metrics: string[];
@@ -48,14 +48,12 @@ interface QueryAnalysis {
   confidence: number;
 }
 
-interface UserHealthProfile {
+export interface UserHealthProfile {
   userId: string;
   goals: {
-    sleep: { target: number; priority: "high" | "medium" | "low" };
-    steps: { target: number; priority: "high" | "medium" | "low" };
-    water: { target: number; priority: "high" | "medium" | "low" };
+    [metric: string]: { target: number; priority: "high" | "medium" | "low" };
   };
-  preference: {
+  preferences: {
     units: "metric" | "imperial";
     reminderTimes: string[];
   };
@@ -63,7 +61,7 @@ interface UserHealthProfile {
   lastUpdated: Date;
 }
 
-interface HealthSummary {
+export interface HealthSummary {
   userId: string;
   period: "daily" | "weekly" | "monthly";
   date: string;

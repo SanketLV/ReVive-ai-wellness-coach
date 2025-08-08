@@ -1,6 +1,13 @@
-import { timestamp } from "drizzle-orm/gel-core";
 import { redisClient } from "./redis";
-import { date, promise } from "zod";
+import type {
+  HealthContext,
+  HealthTrend,
+  UserGoal,
+  HealthInsight,
+  QueryAnalysis,
+  UserHealthProfile,
+  MetricData,
+} from "@/types";
 
 export class HealthDataService {
   private cacheTime = 300; //* 5 minutes
@@ -26,11 +33,21 @@ export class HealthDataService {
   private async analyzeQuery(query: string): Promise<QueryAnalysis> {
     const lowerQuery = query.toLowerCase();
 
-    //* Simple keyword-based analysis (can be enhanced with AI later)
+    //* Enhanced keyword-based analysis with specific date support
     const analysisRules = {
       timeframes: {
         today: ["today", "today's", "current"],
+        yesterday: ["yesterday", "yest"],
+        day_before_yesterday: [
+          "day before yesterday",
+          "day after yesterday",
+          "2 days ago",
+          "two days ago",
+          "day before yest",
+        ],
+        three_days_ago: ["3 days ago", "three days ago"],
         week: ["week", "weekly", "past week", "this week", "7 days"],
+        last_week: ["last week", "previous week"],
         month: ["month", "monthly", "past month", "this month", "30 days"],
         year: ["year", "yearly", "annual"],
       },
@@ -58,6 +75,9 @@ export class HealthDataService {
     for (const [tf, keywords] of Object.entries(analysisRules.timeframes)) {
       if (keywords.some((keyword) => lowerQuery.includes(keyword))) {
         timeframe = tf;
+        console.log(
+          `Date parsing: Query "${query}" matched timeframe "${timeframe}"`
+        );
         break;
       }
     }
@@ -128,13 +148,41 @@ export class HealthDataService {
 
     const now = Date.now();
     let fromTimestamp: number;
+    let toTimestamp: number = now;
 
     switch (timeframe) {
       case "today":
         fromTimestamp = new Date().setHours(0, 0, 0, 0);
+        toTimestamp = new Date().setHours(23, 59, 59, 999);
+        break;
+      case "yesterday":
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        fromTimestamp = yesterday.setHours(0, 0, 0, 0);
+        toTimestamp = yesterday.setHours(23, 59, 59, 999);
+        break;
+      case "day_before_yesterday":
+        const dayBefore = new Date();
+        dayBefore.setDate(dayBefore.getDate() - 2);
+        fromTimestamp = dayBefore.setHours(0, 0, 0, 0);
+        toTimestamp = dayBefore.setHours(23, 59, 59, 999);
+        break;
+      case "three_days_ago":
+        const threeDays = new Date();
+        threeDays.setDate(threeDays.getDate() - 3);
+        fromTimestamp = threeDays.setHours(0, 0, 0, 0);
+        toTimestamp = threeDays.setHours(23, 59, 59, 999);
         break;
       case "week":
         fromTimestamp = now - 7 * 24 * 60 * 60 * 1000;
+        break;
+      case "last_week":
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - 14);
+        const weekEnd = new Date();
+        weekEnd.setDate(weekEnd.getDate() - 7);
+        fromTimestamp = weekStart.getTime();
+        toTimestamp = weekEnd.getTime();
         break;
       case "month":
         fromTimestamp = now - 30 * 24 * 60 * 60 * 1000;
@@ -147,10 +195,10 @@ export class HealthDataService {
     }
 
     const results = await Promise.allSettled([
-      this.getMetricData(userId, "sleep", fromTimestamp, now),
-      this.getMetricData(userId, "steps", fromTimestamp, now),
-      this.getMetricData(userId, "water", fromTimestamp, now),
-      this.getMoodData(userId, fromTimestamp, now),
+      this.getMetricData(userId, "sleep", fromTimestamp, toTimestamp),
+      this.getMetricData(userId, "steps", fromTimestamp, toTimestamp),
+      this.getMetricData(userId, "water", fromTimestamp, toTimestamp),
+      this.getMoodData(userId, fromTimestamp, toTimestamp),
     ]);
 
     const recentData = {
@@ -275,26 +323,47 @@ export class HealthDataService {
         return await this.getDefaultGoals();
       }
 
-      //* Get current averages to calculate progress
+      //* Get current averages to calculate progress - use "week" for goals calculation
       const recentData = await this.getRecentMetrics(userId, "week");
+      console.log(
+        "Goals calculation - recent data:",
+        JSON.stringify(recentData, null, 2)
+      );
 
       const goals: UserGoal[] = [];
 
       for (const [metric, goal] of Object.entries(profile.goals)) {
         const currentData = recentData[
           metric as keyof typeof recentData
-        ] as MetricData[];
-        const current =
-          currentData.length > 0
-            ? currentData.reduce((sum, d) => sum + d.value, 0) /
-              currentData.length
-            : 0;
+        ] as any[];
+
+        let current = 0;
+
+        if (currentData && currentData.length > 0) {
+          if (metric === "mood") {
+            //* Special handling for mood data - convert strings to scores for goals
+            const moodEntries = currentData.filter((d) => d.mood !== undefined);
+            if (moodEntries.length > 0) {
+              const moodScores = moodEntries.map((d) =>
+                this.getMoodScore(d.mood)
+              );
+              current =
+                moodScores.reduce((sum, score) => sum + score, 0) /
+                moodScores.length;
+            }
+          } else {
+            //* Regular metrics with .value property
+            current =
+              currentData.reduce((sum, d) => sum + (d.value || 0), 0) /
+              currentData.length;
+          }
+        }
 
         goals.push({
           metric,
           target: goal.target,
           current,
-          progress: (current / goal.target) * 100,
+          progress: goal.target > 0 ? (current / goal.target) * 100 : 0,
           priority: goal.priority,
         });
       }
@@ -359,18 +428,49 @@ export class HealthDataService {
   formatHealthContextForAI(context: HealthContext): string {
     let contextString = `\n--- USER HEALTH DATA CONTEXT ---\n`;
 
-    //* Recent data summary
-    contextString += `Recent ${context.timeframe} data:\n`;
+    //* Format timeframe description for better AI understanding
+    const timeframeDescription = this.getTimeframeDescription(
+      context.timeframe
+    );
+    contextString += `Data for ${timeframeDescription}:\n`;
     for (const metric of context.metrics) {
       const data = context.recentData[
         metric as keyof typeof context.recentData
-      ] as MetricData[];
+      ] as any[];
+
       if (data && data.length > 0) {
-        const avg = data.reduce((sum, d) => sum + d.value, 0) / data.length;
-        const latest = data[data.length - 1]?.value || 0;
-        contextString += `- ${metric}: Latest: ${latest}, Average: ${avg.toFixed(
-          1
-        )}\n`;
+        if (metric === "mood") {
+          //* Special handling for mood data - string values (sad, happy, excited, neutral)
+          const moodEntries = data.filter((d) => d.mood !== undefined);
+          if (moodEntries.length > 0) {
+            const latest =
+              moodEntries[moodEntries.length - 1]?.mood || "unknown";
+            const moodCounts = this.getMoodDistribution(
+              moodEntries.map((d) => d.mood)
+            );
+            const mostCommon =
+              Object.entries(moodCounts).sort(
+                ([, a], [, b]) => b - a
+              )[0]?.[0] || "unknown";
+
+            contextString += `- ${metric}: Latest: ${latest}, Most common: ${mostCommon}\n`;
+            contextString += `  Mood distribution: ${Object.entries(moodCounts)
+              .map(([mood, count]) => `${mood}(${count})`)
+              .join(", ")}\n`;
+          } else {
+            contextString += `- ${metric}: No data available\n`;
+          }
+        } else {
+          //* Regular metric data structure
+          const avg =
+            data.reduce((sum, d) => sum + (d.value || 0), 0) / data.length;
+          const latest = data[data.length - 1]?.value || 0;
+          contextString += `- ${metric}: Latest: ${latest}, Average: ${avg.toFixed(
+            1
+          )}\n`;
+        }
+      } else {
+        contextString += `- ${metric}: No data available\n`;
       }
     }
 
@@ -405,5 +505,58 @@ export class HealthDataService {
     contextString += `--- END HEALTH DATA CONTEXT ---\n`;
 
     return contextString;
+  }
+
+  //* Helper method to get human-readable timeframe description
+  private getTimeframeDescription(timeframe: string): string {
+    const today = new Date();
+
+    switch (timeframe) {
+      case "today":
+        return "today (" + today.toLocaleDateString() + ")";
+      case "yesterday":
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return "yesterday (" + yesterday.toLocaleDateString() + ")";
+      case "day_before_yesterday":
+        const dayBefore = new Date(today);
+        dayBefore.setDate(dayBefore.getDate() - 2);
+        return "day before yesterday (" + dayBefore.toLocaleDateString() + ")";
+      case "three_days_ago":
+        const threeDays = new Date(today);
+        threeDays.setDate(threeDays.getDate() - 3);
+        return "three days ago (" + threeDays.toLocaleDateString() + ")";
+      case "week":
+        return "the past 7 days";
+      case "last_week":
+        return "last week";
+      case "month":
+        return "the past 30 days";
+      case "year":
+        return "the past year";
+      default:
+        return timeframe;
+    }
+  }
+
+  //* Helper method to convert mood strings to numerical scores for goals calculation
+  private getMoodScore(mood: string): number {
+    const moodScores: Record<string, number> = {
+      sad: 1,
+      neutral: 2.5,
+      happy: 4,
+      excited: 5,
+    };
+    return moodScores[mood?.toLowerCase()] || 2.5; // Default to neutral
+  }
+
+  //* Helper method to count mood distribution
+  private getMoodDistribution(moods: string[]): Record<string, number> {
+    const distribution: Record<string, number> = {};
+    moods.forEach((mood) => {
+      const normalizedMood = mood?.toLowerCase() || "unknown";
+      distribution[normalizedMood] = (distribution[normalizedMood] || 0) + 1;
+    });
+    return distribution;
   }
 }

@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { MetricData, HealthInsight } from "@/types";
 import {
   ActivityIcon,
   HeartIcon,

@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redisClient } from "@/lib/redis";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import type { HealthInsight } from "@/types";
 
 export async function GET() {
   try {
@@ -113,6 +114,7 @@ async function getRecentTrends(userId: string) {
         console.warn(`Failed to calculate trend for ${metric}:`, error);
       }
     }
+    return trends;
   } catch (error) {
     console.error("Error getting recent trends:", error);
     return [];

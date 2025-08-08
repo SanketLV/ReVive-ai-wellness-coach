@@ -1,9 +1,17 @@
-// app/api/health/route.ts
 import { auth } from "@/lib/auth";
 import { redisClient } from "@/lib/redis";
 import { HealthInsightService } from "@/lib/health-insight-service";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+
+const ingestSchema = z.object({
+  steps: z.number().int().min(0),
+  sleep: z.number().min(0).max(24),
+  mood: z.string().min(1),
+  water: z.number().min(0).max(10).optional(),
+  timestamp: z.number().int().min(0),
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,7 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { steps, sleep, mood, water, timestamp } = body;
+    const { steps, sleep, mood, water, timestamp } = ingestSchema.parse(body);
 
     // Check if an entry for this timestamp already exists in the stream
     const existing = await redisClient.xRange(
@@ -39,10 +47,10 @@ export async function POST(req: NextRequest) {
     // Add to stream
     await redisClient.xAdd(`stream:health:${userId}`, String(timestamp), {
       type: "health",
-      steps,
-      sleep,
+      steps: String(steps),
+      sleep: String(sleep),
       mood,
-      ...(water ? { water } : {}),
+      ...(water ? { water: String(water) } : {}),
     });
 
     // Add to time series
