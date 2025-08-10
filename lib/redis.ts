@@ -21,10 +21,15 @@ export function vectorToBuffer(vector: number[]): Buffer {
 
 // Ensures the redis vector index is created only once
 export async function ensureIndexExists() {
+  await ensureChatIndex();
+  await ensureRecommendationIndices();
+}
+
+async function ensureChatIndex() {
   try {
     // If the index exists, this succeeds; if not, it throws
     await redisClient.sendCommand(["FT.INFO", "chat_cache"]);
-    console.log("Vector index already existed.");
+    console.log("Chat vector index already existed.");
     return;
   } catch (infoError) {
     // Create the index when it does not exist
@@ -52,10 +57,91 @@ export async function ensureIndexExists() {
           PREFIX: "chat:",
         }
       );
-      console.log("Vector index created successfully");
+      console.log("Chat vector index created successfully");
     } catch (createError) {
-      console.error("Redis index creation failed:", createError);
+      console.error("Redis chat index creation failed:", createError);
       throw createError;
+    }
+  }
+}
+
+async function ensureRecommendationIndices() {
+  // Create meals index
+  try {
+    await redisClient.sendCommand(["FT.INFO", "meals_index"]);
+    console.log("Meals index already existed.");
+  } catch (infoError) {
+    try {
+      await redisClient.ft.create(
+        "meals_index",
+        {
+          "$.embedding": {
+            type: "VECTOR",
+            ALGORITHM: "HNSW",
+            TYPE: "FLOAT32",
+            DIM: VECTOR_DIMENSIONS,
+            DISTANCE_METRIC: "COSINE",
+            M: 16,
+            AS: "embedding",
+            EF_CONSTRUCTION: 200,
+          },
+          "$.title": { type: "TEXT", AS: "title" },
+          "$.description": { type: "TEXT", AS: "description" },
+          "$.type": { type: "TAG", AS: "type" },
+          "$.tags": { type: "TAG", AS: "tags", SEPARATOR: "," },
+          "$.dietaryRestrictions": { type: "TAG", AS: "dietaryRestrictions", SEPARATOR: "," },
+          "$.calories": { type: "NUMERIC", AS: "calories" },
+          "$.prepTime": { type: "NUMERIC", AS: "prepTime" },
+          "$.cookTime": { type: "NUMERIC", AS: "cookTime" },
+        },
+        {
+          ON: "JSON",
+          PREFIX: "meal:",
+        }
+      );
+      console.log("Meals index created successfully");
+    } catch (createError) {
+      console.error("Redis meals index creation failed:", createError);
+    }
+  }
+
+  // Create workouts index
+  try {
+    await redisClient.sendCommand(["FT.INFO", "workouts_index"]);
+    console.log("Workouts index already existed.");
+  } catch (infoError) {
+    try {
+      await redisClient.ft.create(
+        "workouts_index",
+        {
+          "$.embedding": {
+            type: "VECTOR",
+            ALGORITHM: "HNSW",
+            TYPE: "FLOAT32",
+            DIM: VECTOR_DIMENSIONS,
+            DISTANCE_METRIC: "COSINE",
+            M: 16,
+            AS: "embedding",
+            EF_CONSTRUCTION: 200,
+          },
+          "$.title": { type: "TEXT", AS: "title" },
+          "$.description": { type: "TEXT", AS: "description" },
+          "$.type": { type: "TAG", AS: "type" },
+          "$.tags": { type: "TAG", AS: "tags", SEPARATOR: "," },
+          "$.difficulty": { type: "TAG", AS: "difficulty" },
+          "$.duration": { type: "NUMERIC", AS: "duration" },
+          "$.equipment": { type: "TAG", AS: "equipment", SEPARATOR: "," },
+          "$.targetMuscles": { type: "TAG", AS: "targetMuscles", SEPARATOR: "," },
+          "$.caloriesBurned": { type: "NUMERIC", AS: "caloriesBurned" },
+        },
+        {
+          ON: "JSON",
+          PREFIX: "workout:",
+        }
+      );
+      console.log("Workouts index created successfully");
+    } catch (createError) {
+      console.error("Redis workouts index creation failed:", createError);
     }
   }
 }

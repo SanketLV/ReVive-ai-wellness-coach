@@ -27,7 +27,15 @@ export interface HealthInsight {
 }
 
 export interface HealthContext {
-  timeframe: "today" | "yesterday" | "day_before_yesterday" | "three_days_ago" | "week" | "last_week" | "month" | "year";
+  timeframe:
+    | "today"
+    | "yesterday"
+    | "day_before_yesterday"
+    | "three_days_ago"
+    | "week"
+    | "last_week"
+    | "month"
+    | "year";
   metrics: ("sleep" | "steps" | "mood" | "water")[];
   trends: HealthTrend[];
   goals: UserGoal[];
@@ -86,4 +94,75 @@ export interface HealthSummary {
     };
     mood: { distribution: Record<string, number> };
   };
+}
+
+// Recommendation System Types
+export interface Meal {
+  id: string;
+  title: string;
+  description: string;
+  type: "breakfast" | "lunch" | "dinner" | "snack";
+  tags: string[];
+  dietaryRestrictions: string[];
+  calories: number;
+  prepTime: number; // in minutes
+  cookTime: number; // in minutes
+  servings: number;
+  ingredients: string[];
+  instructions: string[];
+  nutrition: {
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber: number;
+  };
+  embedding?: number[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Workout {
+  id: string;
+  title: string;
+  description: string;
+  type: "cardio" | "strength" | "flexibility" | "mixed";
+  tags: string[];
+  difficulty: "beginner" | "intermediate" | "advanced";
+  duration: number; // in minutes
+  equipment: string[];
+  targetMuscles: string[];
+  exercises: {
+    name: string;
+    sets?: number;
+    reps?: number;
+    duration?: number; // for time-based exercises
+    rest?: number; // rest between sets in seconds
+    instructions: string;
+  }[];
+  caloriesBurned: number; // estimated
+  embedding?: number[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface RecommendationFilters {
+  type?: "meal" | "workout" | "all";
+  mealType?: "breakfast" | "lunch" | "dinner" | "snack";
+  workoutType?: "cardio" | "strength" | "flexibility" | "mixed";
+  dietPreference?: string[];
+  timeAvailable?: number; // in minutes
+  difficulty?: "beginner" | "intermediate" | "advanced";
+  equipment?: string[];
+  calorieRange?: { min?: number; max?: number };
+  tags?: string[];
+}
+
+export interface RecommendationResult {
+  id: string;
+  title: string;
+  description: string;
+  type: "meal" | "workout";
+  score: number;
+  relevanceReason: string;
+  item: Meal | Workout;
 }
