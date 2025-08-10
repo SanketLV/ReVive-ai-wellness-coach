@@ -176,12 +176,14 @@ export class RecommendationService {
       // Perform hybrid search: KNN vector search + text filtering
       const searchResults = await redisClient.ft.search(
         "meals_index",
-        `${query}=>[KNN ${limit} @embedding $vec_param]`,
+        `${query}=>[KNN ${limit} @embedding $vec_param AS vector_score]`,
         {
-          PARAMS: {
-            vec_param: vectorToBuffer(searchQuery.embedding),
-          },
+          PARAMS: { vec_param: vectorToBuffer(searchQuery.embedding) },
+          SORTBY: "vector_score",
+          DIALECT: 2,
           RETURN: [
+            "vector_score",
+            "$.id",
             "$.title",
             "$.description",
             "$.type",
