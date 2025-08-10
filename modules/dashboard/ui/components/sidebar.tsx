@@ -34,7 +34,7 @@ const items = [
   },
   {
     title: "Recommendation",
-    url: "/recommendation",
+    url: "/recommend",
     icon: Award,
   },
   {
