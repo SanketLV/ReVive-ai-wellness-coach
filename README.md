@@ -303,10 +303,6 @@ curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:3000/api/health/insi
 5. Update documentation as needed
 6. Test data entry order requirements
 
-## 📄 License
-
-[Your License Here]
-
 ## 🆘 Support
 
 For issues related to:
