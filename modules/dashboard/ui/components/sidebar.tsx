@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, Home, Bot, Settings } from "lucide-react";
+import { Award, Home, Bot, User } from "lucide-react";
 
 import {
   Sidebar,
@@ -38,9 +38,9 @@ const items = [
     icon: Award,
   },
   {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
+    title: "Profile",
+    url: "/profile",
+    icon: User,
   },
 ];
 

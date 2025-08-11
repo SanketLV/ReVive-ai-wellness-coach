@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
-import { redisClient } from "@/lib/redis";
+import { getRedisClient } from "@/lib/redis";
+import { HealthInsightService } from "@/lib/health-insight-service";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import type { HealthInsight } from "@/types";
@@ -15,17 +16,63 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get Redis client with lazy connection
+    const redisClient = await getRedisClient();
+
     //* Get User insights
-    const insights = (await redisClient.json.get(
+    let insights = (await redisClient.json.get(
       `insights:${userId}`
     )) as unknown as HealthInsight[];
 
+    //* If no insights exist, try to generate them from recent data
+    if (!insights || insights.length === 0) {
+      console.log(
+        "No insights found, attempting to generate from recent data..."
+      );
+      try {
+        const healthInsightService = new HealthInsightService();
+
+        // Get most recent health entry to trigger insight generation
+        const recentEntries = await redisClient.xRevRange(
+          `stream:health:${userId}`,
+          "-",
+          "+",
+          { COUNT: 1 }
+        );
+
+        if (recentEntries && recentEntries.length > 0) {
+          const entry = recentEntries[0];
+          const healthEntry = {
+            steps: parseInt(entry.message.steps) || 0,
+            sleep: parseFloat(entry.message.sleep) || 0,
+            mood: entry.message.mood || "",
+            water: entry.message.water
+              ? parseFloat(entry.message.water)
+              : undefined,
+            timestamp: parseInt(entry.id.split("-")[0]),
+          };
+
+          // Process this entry to generate insights
+          await healthInsightService.processNewHealthEntry(userId, healthEntry);
+
+          // Re-fetch insights after generation
+          insights = (await redisClient.json.get(
+            `insights:${userId}`
+          )) as unknown as HealthInsight[];
+
+          console.log(`Generated ${insights?.length || 0} insights`);
+        }
+      } catch (error) {
+        console.error("Error generating insights on-demand:", error);
+      }
+    }
+
     //* Get goal progress for today
     const today = new Date().toISOString().split("T")[0];
-    const goalProgress = await getGoalProgress(userId, today);
+    const goalProgress = await getGoalProgress(redisClient, userId, today);
 
     //* Get recent trends
-    const trends = await getRecentTrends(userId);
+    const trends = await getRecentTrends(redisClient, userId);
 
     return NextResponse.json(
       {
@@ -45,7 +92,7 @@ export async function GET() {
   }
 }
 
-async function getGoalProgress(userId: string, date: string) {
+async function getGoalProgress(redisClient: any, userId: string, date: string) {
   try {
     const progressKeys = [
       `progress:${userId}:sleep:${date}`,
@@ -71,7 +118,7 @@ async function getGoalProgress(userId: string, date: string) {
   }
 }
 
-async function getRecentTrends(userId: string) {
+async function getRecentTrends(redisClient: any, userId: string) {
   try {
     const now = Date.now();
     const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
@@ -93,10 +140,10 @@ async function getRecentTrends(userId: string) {
 
         if (thisWeek.length > 0 && lastWeek.length > 0) {
           const thisWeekAvg =
-            thisWeek.reduce((sum, { value }) => sum + value, 0) /
+            thisWeek.reduce((sum: number, { value }: { value: number }) => sum + value, 0) /
             thisWeek.length;
           const lastWeekAvg =
-            lastWeek.reduce((sum, { value }) => sum + value, 0) /
+            lastWeek.reduce((sum: number, { value }: { value: number }) => sum + value, 0) /
             lastWeek.length;
           const percentage = ((thisWeekAvg - lastWeekAvg) / lastWeekAvg) * 100;
 

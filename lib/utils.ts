@@ -1,3 +1,4 @@
+import { MetricData } from "@/types";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -30,7 +31,7 @@ export function getTodayStats(
 
 export function getWeeklyAverage(data: MetricData[] | null) {
   if (!data || data.length === 0) return 0;
-  return data.reduce((sum, d) => sum + d.value, 0) / data.length;
+  return (data.reduce((sum, d) => sum + d.value, 0) / data.length).toFixed(2);
 }
 
 export function getStreak(data: MetricData[] | null) {
