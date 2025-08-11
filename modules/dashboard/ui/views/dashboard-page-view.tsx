@@ -283,6 +283,10 @@ export default function DashboardPage() {
               {sleepData && stepsData
                 ? getTodayStats(sleepData, stepsData)
                 : "No Data"}
+              ,{" "}
+              {waterData && waterData.length > 0
+                ? `${waterData[waterData.length - 1].value} L Water`
+                : "No water data"}
             </p>
           </CardContent>
         </Card>
@@ -294,7 +298,8 @@ export default function DashboardPage() {
           <CardContent className="h-20">
             <p className="text-xl font-semibold">
               {sleepData ? getWeeklyAverage(sleepData) : "No data"} hrs sleep,{" "}
-              {stepsData ? getWeeklyAverage(stepsData) : ""} steps
+              {stepsData ? getWeeklyAverage(stepsData) : ""} steps,{" "}
+              {waterData ? getWeeklyAverage(waterData) : ""} L water
             </p>
           </CardContent>
         </Card>
@@ -355,11 +360,6 @@ export default function DashboardPage() {
         <CardContent className="flex items-center space-x-4 p-6">
           <span className="text-2xl">😊</span>
           <p className="text-lg font-medium">Feeling energetic and positive</p>
-          <p className="text-lg font-medium">
-            {waterData && waterData.length > 0
-              ? `Water: ${waterData[waterData.length - 1].value} L`
-              : "No water data"}
-          </p>
         </CardContent>
       </Card>
     </div>

@@ -65,6 +65,17 @@ export interface UserHealthProfile {
     units: "metric" | "imperial";
     reminderTimes: string[];
   };
+  profile?: {
+    goal: "weight_loss" | "weight_gain" | "muscle_gain" | "maintenance" | "general_health";
+    diet: "none" | "vegetarian" | "vegan" | "keto" | "paleo" | "mediterranean" | "gluten_free";
+    activityLevel: "sedentary" | "light" | "moderate" | "active" | "very_active";
+    personalInfo?: {
+      weight?: number;
+      height?: number;
+      age?: number;
+      gender?: "male" | "female" | "other";
+    };
+  };
   healthConditions?: string[];
   lastUpdated: Date;
 }

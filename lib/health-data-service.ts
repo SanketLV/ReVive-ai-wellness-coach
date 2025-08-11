@@ -69,7 +69,7 @@ export class HealthDataService {
     let timeframe = "week";
     let metrics: string[] = [];
     let intent = "general";
-    let contextNeeded = true;
+    const contextNeeded = true;
 
     //* Detect Timeframe
     for (const [tf, keywords] of Object.entries(analysisRules.timeframes)) {

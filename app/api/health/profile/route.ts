@@ -33,6 +33,11 @@ export async function GET() {
           units: "metric",
           reminderTimes: ["09:00", "15:00", "21:00"],
         },
+        profile: {
+          goal: "general_health",
+          diet: "none",
+          activityLevel: "moderate",
+        },
         lastUpdated: new Date(),
       };
 
@@ -68,7 +73,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { goals, preferences, healthConditions } = body;
+    const { goals, preferences, healthConditions, profile } = body;
 
     // Validate goals
     if (goals) {
@@ -108,6 +113,67 @@ export async function PUT(req: NextRequest) {
       }
     }
 
+    // Validate profile data
+    if (profile) {
+      const validGoals = ["weight_loss", "weight_gain", "muscle_gain", "maintenance", "general_health"];
+      const validDiets = ["none", "vegetarian", "vegan", "keto", "paleo", "mediterranean", "gluten_free"];
+      const validActivityLevels = ["sedentary", "light", "moderate", "active", "very_active"];
+      const validGenders = ["male", "female", "other"];
+
+      if (profile.goal && !validGoals.includes(profile.goal)) {
+        return NextResponse.json(
+          { error: `Invalid goal: ${profile.goal}` },
+          { status: 400 }
+        );
+      }
+
+      if (profile.diet && !validDiets.includes(profile.diet)) {
+        return NextResponse.json(
+          { error: `Invalid diet: ${profile.diet}` },
+          { status: 400 }
+        );
+      }
+
+      if (profile.activityLevel && !validActivityLevels.includes(profile.activityLevel)) {
+        return NextResponse.json(
+          { error: `Invalid activity level: ${profile.activityLevel}` },
+          { status: 400 }
+        );
+      }
+
+      if (profile.personalInfo) {
+        const { weight, height, age, gender } = profile.personalInfo;
+        
+        if (weight && (typeof weight !== "number" || weight <= 0)) {
+          return NextResponse.json(
+            { error: "Weight must be a positive number" },
+            { status: 400 }
+          );
+        }
+
+        if (height && (typeof height !== "number" || height <= 0)) {
+          return NextResponse.json(
+            { error: "Height must be a positive number" },
+            { status: 400 }
+          );
+        }
+
+        if (age && (typeof age !== "number" || age <= 0 || age > 150)) {
+          return NextResponse.json(
+            { error: "Age must be a number between 1 and 150" },
+            { status: 400 }
+          );
+        }
+
+        if (gender && !validGenders.includes(gender)) {
+          return NextResponse.json(
+            { error: `Invalid gender: ${gender}` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     //* Get existing profile or create new one
     let existingProfile = (await redisClient.json.get(
       `profile:${userId}`
@@ -125,6 +191,11 @@ export async function PUT(req: NextRequest) {
           units: "metric",
           reminderTimes: ["09:00", "15:00", "21:00"],
         },
+        profile: {
+          goal: "general_health",
+          diet: "none",
+          activityLevel: "moderate",
+        },
         lastUpdated: new Date(),
       };
     }
@@ -135,6 +206,9 @@ export async function PUT(req: NextRequest) {
       ...(goals && { goals: { ...existingProfile.goals, ...goals } }),
       ...(preferences && {
         preferences: { ...existingProfile.preferences, ...preferences },
+      }),
+      ...(profile && {
+        profile: { ...existingProfile.profile, ...profile },
       }),
       ...(healthConditions && { healthConditions }),
       lastUpdated: new Date(),

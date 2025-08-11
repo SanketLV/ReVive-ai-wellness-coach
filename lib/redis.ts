@@ -1,7 +1,7 @@
-import { createClient } from "redis";
+import { createClient, type RedisClientType } from "redis";
 
 // Create Redis client with all modules
-export const redisClient = createClient({
+const client = createClient({
   // url: process.env.REDIS_URL || "redis://localhost:6379",
   socket: {
     host: process.env.REDIS_HOST || "localhost",
@@ -10,7 +10,25 @@ export const redisClient = createClient({
   password: process.env.REDIS_PASSWORD || undefined,
 });
 
-await redisClient.connect();
+let isConnected = false;
+
+// Lazy connection helper
+export async function getRedisClient(): Promise<RedisClientType> {
+  if (!isConnected) {
+    try {
+      await client.connect();
+      isConnected = true;
+      console.log('Redis connected successfully');
+    } catch (error) {
+      console.error('Redis connection failed:', error);
+      throw error;
+    }
+  }
+  return client as RedisClientType;
+}
+
+// Export the client for backward compatibility, but it won't be connected yet
+export const redisClient = client as RedisClientType;
 
 export const VECTOR_DIMENSIONS = 1536; //* OpenAI embedding size
 

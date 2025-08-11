@@ -28,7 +28,7 @@ export class RecommendationService {
         userProfile
       );
 
-      let results: RecommendationResult[] = [];
+      const results: RecommendationResult[] = [];
 
       if (!filters.type || filters.type === "meal" || filters.type === "all") {
         const mealResults = await this.searchMeals(searchQuery, filters, limit);

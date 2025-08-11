@@ -37,9 +37,15 @@ export class HealthInsightService {
     const insights: HealthInsight[] = [];
 
     try {
+      console.log(`Generating insights for userId: ${userId}`);
+      console.log(`Current entry:`, entry);
+
       //* Get Historical data for comparison
       const historicalData = await this.getHistoricalData(userId, 30); //* Last 30 days
       const goals = await this.getUserGoals(userId);
+
+      console.log(`Historical data count: ${historicalData.length}`);
+      console.log(`Goals count: ${goals.length}`);
 
       //* Sleep insights
       const sleepInsights = await this.analyzeSleep(
@@ -387,6 +393,12 @@ export class HealthInsightService {
       const now = Date.now();
       const fromTimestamp = now - days * 24 * 60 * 60 * 1000;
 
+      console.log(
+        `Getting historical data for userId: ${userId}, from: ${new Date(
+          fromTimestamp
+        ).toISOString()}`
+      );
+
       const streamData = await redisClient.xRange(
         `stream:health:${userId}`,
         fromTimestamp.toString(),
@@ -394,7 +406,9 @@ export class HealthInsightService {
         { COUNT: days }
       );
 
-      return streamData.map((entry: any) => ({
+      console.log(`Found ${streamData.length} historical entries`);
+
+      const result = streamData.map((entry: any) => ({
         steps: parseInt(entry.message.steps) || 0,
         sleep: parseFloat(entry.message.sleep) || 0,
         mood: entry.message.mood || "",
@@ -403,6 +417,8 @@ export class HealthInsightService {
           : undefined,
         timestamp: parseInt(entry.id.split("-")[0]),
       }));
+
+      return result;
     } catch (error) {
       console.error("Error getting historical data:", error);
       return [];
