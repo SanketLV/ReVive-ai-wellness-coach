@@ -1,4 +1,4 @@
-#ReVive - AI Wellness Coach
+# ReVive - AI Wellness Coach
 
 A production-ready Next.js application with AI-powered wellness coaching, featuring Redis 8 as a multi-model data platform, PostgreSQL database, and intelligent health insights.
 
