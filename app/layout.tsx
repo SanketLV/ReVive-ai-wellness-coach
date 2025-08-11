@@ -20,7 +20,7 @@ const rockSalt = Rock_Salt({
 });
 
 export const metadata: Metadata = {
-  title: "ReVive",
+  title: "ReVive - AI Wellness Coach",
   description:
     "Redis + Revive (wellness, rejuvenation), Transform your well-being with our AI-powered wellness coaching platform. Get personalized recommendations, track your progress, and achieve your health and wellness goals with our intuitive and supportive tools.",
 };
